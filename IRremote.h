@@ -258,8 +258,15 @@ class IRrecv
 //
 class IRsend
 {
+	private:
+		bool _useCarry = true;
+		int _noCarryPin = 8;
 	public:
 		IRsend () { }
+		IRsend (int noCarryPin) { 
+			_noCarryPin = 8;
+			_useCarry = false;
+		}
 
 		void  custom_delay_usec (unsigned long uSecs);
 		void  enableIROut 		(int khz) ;

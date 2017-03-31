@@ -21,7 +21,10 @@ void  IRsend::sendRaw (const unsigned int buf[],  unsigned int len,  unsigned in
 //
 void  IRsend::mark (unsigned int time)
 {
-	TIMER_ENABLE_PWM; // Enable pin 3 PWM output
+	if(_useCarry)
+		TIMER_ENABLE_PWM; // Enable pin 3 PWM output
+	else
+		digitalWrite(_noCarryPin, LOW);
 	if (time > 0) custom_delay_usec(time);
 }
 
@@ -32,7 +35,10 @@ void  IRsend::mark (unsigned int time)
 //
 void  IRsend::space (unsigned int time)
 {
-	TIMER_DISABLE_PWM; // Disable pin 3 PWM output
+	if(_useCarry)
+		TIMER_DISABLE_PWM; // Disable pin 3 PWM output
+	else
+		digitalWrite(_noCarryPin, HIGH);
 	if (time > 0) IRsend::custom_delay_usec(time);
 }
 
@@ -57,15 +63,22 @@ void  IRsend::enableIROut (int khz)
 	// Disable the Timer2 Interrupt (which is used for receiving IR)
 	TIMER_DISABLE_INTR; //Timer2 Overflow Interrupt
 
-	pinMode(TIMER_PWM_PIN, OUTPUT);
-	digitalWrite(TIMER_PWM_PIN, LOW); // When not sending PWM, we want it low
+	if(_useCarry) {
+		pinMode(TIMER_PWM_PIN, OUTPUT);
+		digitalWrite(TIMER_PWM_PIN, LOW); // When not sending PWM, we want it low
+		
+		// COM2A = 00: disconnect OC2A
+		// COM2B = 00: disconnect OC2B; to send signal set to 10: OC2B non-inverted
+		// WGM2 = 101: phase-correct PWM with OCRA as top
+		// CS2  = 000: no prescaling
+		// The top value for the timer.  The modulation frequency will be SYSCLOCK / 2 / OCR2A.
+		TIMER_CONFIG_KHZ(khz);
 
-	// COM2A = 00: disconnect OC2A
-	// COM2B = 00: disconnect OC2B; to send signal set to 10: OC2B non-inverted
-	// WGM2 = 101: phase-correct PWM with OCRA as top
-	// CS2  = 000: no prescaling
-	// The top value for the timer.  The modulation frequency will be SYSCLOCK / 2 / OCR2A.
-	TIMER_CONFIG_KHZ(khz);
+	} else {
+		pinMode(_noCarryPin, OUTPUT);
+		digitalWrite(_noCarryPin, LOW); // When not sending PWM, we want it low
+	}
+	
 }
 
 //+=============================================================================
